@@ -1,0 +1,255 @@
+# Yassin-rguez
+Yassin rguez تحدي الأمل 
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<title>تحدي الأمل</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg, #e8f5e9, #ffffff);
+  text-align: center;
+}
+
+.app {
+  max-width: 500px;
+  margin: 40px auto;
+  background: white;
+  padding: 20px;
+  border-radius: 15px;
+  box-shadow: 0 0 15px rgba(0,0,0,0.1);
+}
+
+#club-logo {
+  width: 120px;
+  height: auto;
+  margin-bottom: 15px;
+  border-radius: 15px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+}
+
+@keyframes logo-bounce { 0% { transform: scale(1); } 50% { transform: scale(1.3); } 100% { transform: scale(1); } }
+@keyframes logo-win { 0% { transform: scale(1); } 50% { transform: scale(1.5) rotate(10deg); } 100% { transform: scale(1) rotate(0deg); } }
+@keyframes result-fade { 0% { opacity: 0; transform: translateY(-20px); } 100% { opacity: 1; transform: translateY(0); } }
+#result-text.animate-result { animation: result-fade 0.8s ease-out forwards; background: linear-gradient(90deg, #ffeb3b, #4caf50, #2196f3); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 24px; font-weight: bold; }
+
+@keyframes correct-flash { 0% { background-color: #4caf50; } 50% { background-color: #81c784; } 100% { background-color: #4caf50; } }
+button.correct.animate-correct { animation: correct-flash 0.5s ease-in-out; }
+
+@keyframes wrong-bounce { 0% { transform: scale(0.5); opacity: 0; } 50% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+#wrong-box.animate-wrong { animation: wrong-bounce 0.5s ease-out; }
+
+@keyframes question-flash { 0% { background-color: #ffffff; } 50% { background-color: #e0f7fa; } 100% { background-color: #ffffff; } }
+#question-box.animate-question { animation: question-flash 0.4s ease-in-out; }
+
+h1 { color: #0a7c3a; }
+#progress { margin: 10px 0; font-weight: bold; }
+#timer { font-size: 22px; font-weight: bold; color: #e53935; margin-bottom: 10px; }
+#score { font-size: 18px; font-weight: bold; margin-bottom: 10px; color: #1a237e; }
+
+button { width: 100%; padding: 12px; margin: 6px 0; font-size: 16px; border: none; border-radius: 10px; cursor: pointer; background: #eeeeee; transition: 0.2s; }
+button:hover { background: #c8e6c9; }
+#mute-btn { background: #ffeb3b; color: #000; font-weight: bold; }
+#start-btn { background: #ffeb3b; color: #000; font-weight: bold; font-size: 18px; padding: 15px; border-radius: 12px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
+#start-btn:hover { transform: scale(1.05); box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+
+.hidden { display: none; }
+#wrong-box { background: #ffebee; border: 2px solid #e53935; border-radius: 12px; padding: 20px; margin-top: 15px; }
+#wrong-box h2 { color: #e53935; margin-bottom: 15px; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <img id="club-logo"
+       src="https://www.dropbox.com/scl/fi/mbph5gbtkgxp6io7l5c44/Picsart_26-01-12_14-10-36-274.png?rlkey=z1rfumflsbqlp4glckmy8xpn9&st=ysig82c1&dl=1"
+       alt="شعار نادي الأمل">
+
+  <h1>🎯 تحدي الأمل</h1>
+
+  <button id="start-btn">▶️ ابدأ اللعبة</button>
+
+  <div id="progress"></div>
+  <div id="timer">⏱️ 10</div>
+  <div id="score">💯 النقاط: 0</div>
+
+  <button id="mute-btn">🔊 كتم/تشغيل الموسيقى</button>
+
+  <div id="question-box" class="hidden">
+    <h2 id="question"></h2>
+    <div id="answers"></div>
+  </div>
+
+  <div id="wrong-box" class="hidden">
+    <h2>❌ إجابة خاطئة!</h2>
+    <button id="retry-btn">🔁 إعادة المحاولة</button>
+  </div>
+
+  <div id="result-box" class="hidden">
+    <h2 id="result-text"></h2>
+    <button onclick="restartGame()">🔁 إعادة اللعب</button>
+  </div>
+</div>
+
+<!-- الأصوات -->
+<audio id="sound-correct" src="https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3"></audio>
+<audio id="sound-wrong" src="https://assets.mixkit.co/active_storage/sfx/950/950-preview.mp3"></audio>
+<audio id="sound-win" src="https://assets.mixkit.co/active_storage/sfx/304/304-preview.mp3"></audio>
+<audio id="sound-start" src="https://assets.mixkit.co/active_storage/sfx/675/675-preview.mp3"></audio>
+<audio id="sound-new" src="https://assets.mixkit.co/active_storage/sfx/387/387-preview.mp3"></audio>
+<audio id="bg-music" src="https://www.dropbox.com/scl/fi/c103lx8t0h6g5yatsr3vd/Official-Video-MP3_320K.mp3?rlkey=x53fiq5dlqdjamn9ocvucw47f&st=sco93qrp&dl=1" loop></audio>
+
+<script>
+const allQuestions = [
+  { q: "متى تأسست المنظمة؟", answers: ["1946","1947","1948","1949"], correct: "1948" },
+  { q: "من هو مدير مكتب محلي للمصائف و الجولات بالزريبة؟", answers: ["محمد العربي رڨاز","علاء الحاج عمر","وائل رڨاز","عبد العزيز شكربان"], correct: "وائل رڨاز" },
+  { q: "في أي مدينة وقع مصيف 2025؟", answers: ["مرسى","سوسة","المنستير","بنزرت"], correct: "سوسة" },
+  { q: "ماذا تنادي للمدرب؟", answers: ["مي","بأسمه","أخي","أنت"], correct: "مي" },
+  { q: "من هو منشط دورة 2024؟", answers: ["وجدي رڨاز","وائل رڨاز","منتصر رڨاز","نادر سعيد"], correct: "وجدي رڨاز" },
+  { q: "في أي مدينة وقع مصيف 2024؟", answers: ["مرسى","سوسة","المنستير","بنزرت"], correct: "مرسى" },
+  { q: "من هو مدير الجهوي لزغوان؟", answers: ["علاء الحاج عمر","وائل رڨاز","عبد العزيز شكربان","محمد العربي رڨاز"], correct: "محمد العربي رڨاز" }
+];
+
+let questions = [];
+let index = 0;
+let timeLeft = 10;
+let timerInterval;
+let score = 0;
+
+const correctSound = document.getElementById("sound-correct");
+const wrongSound = document.getElementById("sound-wrong");
+const winSound = document.getElementById("sound-win");
+const bgMusic = document.getElementById("bg-music");
+const soundStart = document.getElementById("sound-start");
+const soundNew = document.getElementById("sound-new");
+const startBtn = document.getElementById("start-btn");
+const muteBtn = document.getElementById("mute-btn");
+
+muteBtn.onclick = () => {
+  if(bgMusic.paused){ bgMusic.play(); muteBtn.innerText = "🔊 كتم/تشغيل الموسيقى"; }
+  else { bgMusic.pause(); muteBtn.innerText = "🔇 كتم/تشغيل الموسيقى"; }
+};
+
+startBtn.onclick = () => {
+  soundStart.play();
+  startBtn.style.display = "none";
+  const logo = document.getElementById("club-logo");
+  logo.classList.add("animate-logo");
+  setTimeout(() => {
+    logo.classList.remove("animate-logo");
+    bgMusic.currentTime = 25;
+    bgMusic.play();
+    startGame();
+  }, 600);
+};
+
+function shuffle(array){ return array.sort(() => Math.random() - 0.5); }
+
+function startGame(){
+  questions = shuffle([...allQuestions]);
+  index = 0;
+  score = 0;
+  document.getElementById("score").innerText = "💯 النقاط: " + score;
+  document.getElementById("result-box").classList.add("hidden");
+  document.getElementById("wrong-box").classList.add("hidden");
+  document.getElementById("question-box").classList.remove("hidden");
+  showQuestion();
+}
+
+function showQuestion(){
+  clearInterval(timerInterval);
+  timeLeft = 10;
+  document.getElementById("timer").innerText = "⏱️ " + timeLeft;
+
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    document.getElementById("timer").innerText = "⏱️ " + timeLeft;
+    if(timeLeft === 0){
+      clearInterval(timerInterval);
+      wrongSound.play();
+      document.getElementById("question-box").classList.add("hidden");
+      document.getElementById("wrong-box").classList.remove("hidden");
+      document.getElementById("wrong-box").classList.add("animate-wrong");
+      setTimeout(()=> document.getElementById("wrong-box").classList.remove("animate-wrong"), 500);
+    }
+  },1000);
+
+  const q = questions[index];
+  document.getElementById("progress").innerText = `سؤال ${index+1} من ${questions.length}`;
+  const questionBox = document.getElementById("question-box");
+  document.getElementById("question").innerText = q.q;
+
+  const answersDiv = document.getElementById("answers");
+  answersDiv.innerHTML = "";
+  shuffle([...q.answers]).forEach(ans => {
+    const btn = document.createElement("button");
+    btn.innerText = ans;
+    btn.onclick = () => checkAnswer(btn, ans);
+    answersDiv.appendChild(btn);
+  });
+
+  soundNew.play();
+  questionBox.classList.add("animate-question");
+  setTimeout(() => questionBox.classList.remove("animate-question"), 400);
+}
+
+function checkAnswer(button, answer){
+  clearInterval(timerInterval);
+  const correct = questions[index].correct;
+
+  if(answer === correct){
+    correctSound.play();
+    button.classList.add("correct", "animate-correct");
+    setTimeout(()=> button.classList.remove("animate-correct"), 500);
+    score += 10;
+    document.getElementById("score").innerText = "💯 النقاط: " + score;
+
+    setTimeout(()=>{
+      index++;
+      if(index < questions.length) showQuestion();
+      else endGame();
+    },700);
+  } else {
+    wrongSound.play();
+    button.classList.add("wrong");
+    setTimeout(()=>{
+      document.getElementById("question-box").classList.add("hidden");
+      const wrongBox = document.getElementById("wrong-box");
+      wrongBox.classList.remove("hidden");
+      wrongBox.classList.add("animate-wrong");
+      setTimeout(()=> wrongBox.classList.remove("animate-wrong"), 500);
+    }, 500);
+  }
+}
+
+document.getElementById("retry-btn").onclick = () => {
+  document.getElementById("wrong-box").classList.add("hidden");
+  startGame();
+};
+
+function endGame(){
+  clearInterval(timerInterval);
+  bgMusic.pause();
+  bgMusic.currentTime = 0;
+  winSound.play();
+
+  document.getElementById("question-box").classList.add("hidden");
+  const resultBox = document.getElementById("result-box");
+  resultBox.classList.remove("hidden");
+
+  const logo = document.getElementById("club-logo");
+  logo.classList.add("animate-logo");
+  setTimeout(()=> logo.classList.remove("animate-logo"), 800);
+
+  const resultText = document.getElementById("result-text");
+  resultText.innerText = `🏆 مبروك! ربحت تحدي الأمل مع ${score} نقاط!`;
+  resultText.classList.add("animate-result");
+}
+
+function restartGame(){
+  startGame();
+}
+</script>
+</body>
+</html>
